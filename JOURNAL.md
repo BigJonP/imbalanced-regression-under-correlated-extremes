@@ -15,7 +15,7 @@ row fixes it.
 ---
 
 
-## 2026-09-01 — Phase 1: the three datasets
+## 2026-09-01 Phase 1: the three datasets
 
 ### 1. A fake market where we control how much stocks move together
 
@@ -23,7 +23,7 @@ We built a simulator of daily volatility (how wildly a stock's price swings)
 for ~100 fake stocks, with one dial: **how much all stocks move together**
 (called ρ, "rho", from 0 to 0.8). Because we control the dial, any effect we
 find later can be traced directly to it. The picture below shows the whole
-thesis in one glance — at ρ = 0 the extreme observations are scattered
+thesis in one glance: at ρ = 0 the extreme observations are scattered
 everywhere; at ρ = 0.8 they stack into vertical stripes: a few terrible *days*,
 each hitting every stock at once.
 
@@ -59,7 +59,7 @@ massively over-counting one story.
 Second real dataset, different domain: daily peak electricity demand for **10
 European countries over ~5.7 years** (plus each capital's temperature). Here the
 "crisis" is a heat wave hitting the whole continent at once. Our automatic
-heat-wave detector (no hand-tuning — just "hotter than 95% of days") finds
+heat-wave detector (no hand-tuning, just "hotter than 95% of days") finds
 exactly the right events: the record July 2019 wave, August 2018, August 2020.
 Zones move together even more than stocks: togetherness **0.745**, so a 10-zone
 day carries only ~1.3 zones' worth of independent information.
@@ -90,7 +90,7 @@ beat: "tomorrow looks like the recent past" (HAR), "same day last week"
 
 *Togetherness (ICC): 0 = units move independently, 1 = in lockstep. Redundancy
 factor (design effect): how over-counted a day is when every row is treated as
-independent — 405 stock-rows ÷ 186 ≈ 2 truly independent observations.*
+independent: 405 stock-rows ÷ 186 ≈ 2 truly independent observations.*
 
 
 ## 2026-09-01 Phase 2: the paranoia suite
@@ -128,15 +128,37 @@ its idea, not on scale or architecture.
   Costs nothing, and every fancy method has to beat it.
 - **Portion control (weighting).** Rare examples count extra: bluntly
   (inverse frequency) or smoothed (LDS, the method our paper examines). Our
-  correction keeps the extra attention on rare values but recognizes that 60
-  copies of the same day are not 60 independent lessons, so part of each
-  day's weight is judged at the day level: one story counts once.
+  correction belongs to this family and is explained just below.
 - **Menu control (sampling).** Change the menu instead of the portions: drop
   common days, repeat rare days, cook up synthetic rare-ish days (SMOTER), or
   repeat whole days at a time (our cluster-aware version).
 - **The modern toolbox.** Three recent methods from the literature (FDS,
   RankSim, Balanced MSE), so the comparison covers today's field and not just
   the 2021 original.
+
+### Our correction, in plain words
+
+Picture a crash day with 60 stocks as 60 newspapers all running the same
+front-page story. LDS hands a big weight to every rare example it sees, so the
+model reads that one story 60 times and counts it as 60 fresh lessons. That is
+the over-counting we want to fix, without losing the extra attention that rare
+days deserve. The correction splits each day's attention into two parts:
+
+1. **The individual stories.** Each stock keeps its own LDS weight, but shrunk
+   by the day's redundancy factor. With 60 stocks moving together at
+   correlation 0.8, the redundancy factor is about 48, meaning the 60 front
+   pages hold only about one story's worth of independent news. So only a
+   small sliver of the individual weights survives.
+2. **The shared story.** The rest of the day's attention is given to the day
+   as a whole: one single weight, sized by how unusual that day was compared
+   to other days, then shared out among its 60 stocks.
+
+The net effect: a crash day still gets extra attention for being rare, but it
+gets it once, as one important story, not 60 times over. And the correction
+knows when to stand down. If stocks do not move together at all, the
+redundancy factor is 1, part 1 keeps everything, part 2 gets nothing, and we
+are back to plain LDS exactly. That is the same null gate our diagnostics
+promised: at zero correlation, no correction.
 
 ![training attention on the 10 most extreme days](journal/weight_share.png)
 
@@ -149,5 +171,5 @@ experiments will measure.
 One design discovery worth recording: our first idea, dividing each day's
 weight by its redundancy factor, does nothing when every day has the same
 number of stocks, because dividing everything by the same number changes
-nothing in relative terms. The two-channel weight described above is the fix.
+nothing in relative terms. The two-part weight described above is the fix.
 Catching this before any experiment ran is what the test suite is for.
