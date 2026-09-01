@@ -75,9 +75,6 @@ diagnostic is wrong rather than the data.
 
 ## Core claims
 
-The target venue is TMLR, where the bar is claims–evidence alignment, so the
-claims are stated up front where the experiments can falsify them:
-
 1. **Dose–response.** The benefit of DIR reweighting on extreme-value *test*
    error degrades as intra-event correlation rises, all else held fixed. The
    synthetic correlation sweep measures exactly this.
@@ -99,20 +96,16 @@ claims are stated up front where the experiments can falsify them:
 
 ## Positioning
 
-Checked against the literature in September 2026: no published work studies DIR
+As of September 2026: no published work studies DIR
 failure as a function of sample correlation, and none imports the survey-sampling
 design effect into loss weighting. The standard DIR benchmarks (IMDB-WIKI-DIR,
 AgeDB-DIR, STS-B-DIR) are essentially i.i.d. — which is precisely the point.
-The neighbours this paper must cite and differ from:
+The neighbours this paper builds upon and differes from are: 
 
 - **Yang et al., ICML 2021** (arXiv:2102.09554) — LDS/FDS; the method under study.
 - **“Deconstructing deep imbalanced regression”**, Artificial Intelligence Review,
   2026 (doi:10.1007/s10462-026-11570-1) — the field's current map and benchmark;
   its evaluation protocols are i.i.d., which is this paper's opening.
-- **Moniz, Branco & Torgo, 2017** (Int. J. Data Science and Analytics) —
-  resampling for imbalanced *time-series* forecasting; the closest data-level
-  relative. No event clustering, no deep nets, no design effect. Likewise their
-  2021 spatio-temporal extension.
 - **Cui et al., CVPR 2019** (arXiv:1901.05555) — class-balanced loss via the
   “effective number of samples”: the classification analogue. Their redundancy
   comes from feature-space overlap; ours from clustered dependence among rows
