@@ -95,10 +95,7 @@ independent — 405 stock-rows ÷ 186 ≈ 2 truly independent observations.*
 
 ## 2026-09-01 Phase 2: the paranoia suite
 
-A model can look brilliant for a boring reason: information from the test
-leaked into its training. Since our paper argues that other methods fool
-themselves, our own pipeline has to be beyond suspicion. So before building
-any models, we built the checks that keep us honest.
+To avoid data leakage and ensure the integrity of out testing we do the following:
 
 - **A sealed final exam.** The last stretch of time is locked away. The code
   refuses to hand it over unless you explicitly confirm, and tests prove no
@@ -117,6 +114,3 @@ any models, we built the checks that keep us honest.
 
 ![how the timeline is split](journal/timeline_splits.png)
 
-36 new checks, all passing (76 total, see TESTLOG.md). Next up Phase 3: the
-competitors, from plain baselines to the reweighting methods the paper is
-about.
