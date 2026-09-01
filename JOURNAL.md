@@ -203,7 +203,40 @@ certainty than the data holds; our tests confirm the honest day-level error
 bars are more than twice as wide. When two methods are compared, both are
 scored on the same resampled days and we report the range of the difference.
 
-As a first end-to-end check we ran one small contest on the highly correlated
-synthetic market: the humble log-scale baseline beat LDS on every measure,
-decisively. One fold, one seed, tiny models, so it proves the machinery rather
-than the thesis.
+### A first scoreboard
+
+To check the whole machine end to end, we ran one small contest on the highly
+correlated synthetic market (correlation 0.8): eight methods, same data, same
+splits, same scoring. Fair warning: one fold, one seed, small models. This is
+a smoke test of the pipeline, not a result. With that said, the errors
+relative to the log baseline (1.00 = its score, lower is better):
+
+| method | overall error | wild-day error |
+|---|---|---|
+| log baseline | 1.00 | 1.00 |
+| classical HAR | 1.01 | 1.01 |
+| LDS + our correction | 1.46 | 1.20 |
+| Balanced MSE | 1.86 | 1.34 |
+| whole-day resampling | 1.44 | 1.39 |
+| plain model | 1.48 | 1.40 |
+| inverse frequency | 3.39 | 1.93 |
+| LDS | 2.69 | 2.04 |
+
+![first scoreboard with day-level uncertainty](journal/preview_contest.png)
+
+Three things stand out, all pointing the way the paper suspects:
+
+1. **The reweighting methods came last, on their home turf.** LDS and inverse
+   frequency were roughly twice as bad as doing nothing at all, on the wild
+   days they exist to help. On correlated data, extra attention to rare rows
+   bought obsession, not skill.
+2. **Our correction repaired most of the damage.** Same model, same LDS idea,
+   but counting each story once: wild-day error fell from 2.04 to 1.20.
+3. **The humble baselines set a high bar.** Taking logs, or the 2009-vintage
+   HAR formula, beat every clever method in the race. Any paper claiming
+   progress on rare events should have to show this comparison.
+
+The whiskers in the chart are the honest day-level uncertainty ranges, and
+they are wide: single-fold differences of this size could shrink in the real
+experiments. That is what the full runs, with many folds, seeds, and all
+three datasets, are for.
