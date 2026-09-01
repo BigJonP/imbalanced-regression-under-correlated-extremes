@@ -1,8 +1,4 @@
-"""Every experiment writes results/<run_id>/ with its config, git SHA, seed, and metrics.
-
-A run that cannot be traced back to an exact commit, config, and seed does not
-exist as far as the paper is concerned.
-"""
+"""Every experiment writes results/<run_id>/ with its config, git SHA, seed, and metrics."""
 
 import json
 import platform
@@ -17,8 +13,7 @@ import yaml
 from dire.config import validate_config
 from dire.seeding import set_all_seeds
 
-# src/dire/runs.py -> repo root; the project is always installed editable from
-# the repo, so this resolution holds.
+# src/dire/runs.py -> repo root
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RESULTS_DIR = REPO_ROOT / "results"
 

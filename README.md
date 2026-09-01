@@ -122,39 +122,15 @@ The neighbours this paper must cite and differ from:
 - **Modern DIR baselines** — Focal-R; RankSim (ICML 2022, arXiv:2205.15236);
   Balanced MSE (CVPR 2022); ConR (ICLR 2024, arXiv:2309.06651); Dist Loss
   (arXiv:2411.15216).
-- **Evaluation under dependence** — Bergmeir & Benítez 2012 on time-series CV;
-  Roberts et al. 2017 (Ecography) on blocked CV; hv-blocked CV; Lones, “How to
-  avoid machine learning pitfalls” (arXiv:2108.02497).
-- **Extremes in time series** — Ding et al., KDD 2019 (extreme value loss with
-  memory networks); MBB-RW (Scientific Reports, 2025), block-bootstrap
-  resampling with relevance weighting.
-- **Kish, 1965** — the design effect itself: deff = 1 + (m − 1)ρ.
-
 ---
 
 ## Research roadmap
 
-Venue: TMLR (rolling submissions, claims–evidence bar, code encouraged).
-Compute envelope: one GPU; MLP-scale models throughout.
-
-### Phase 0 — infrastructure (done 2026-09-01)
-- [x] `git init` and first commit. No CI by decision: the suite is run manually
-      with `uv run scripts/run_tests.py`, and every run is appended to
-      `TESTLOG.md` together with the tree state that was tested.
-- [x] Layout: `src/dire/` (data, methods, eval), `configs/` (one YAML per run),
-      `scripts/`, `tests/`, `paper/`.
-- [x] Every run writes `results/<run_id>/` carrying its config, git SHA, seed,
-      and a metrics manifest (`dire.runs.Run`, gated by
-      `tests/test_infrastructure.py`).
-- [x] `pyproject.toml` with `uv.lock`; all seeds set in one place
-      (`dire.seeding.set_all_seeds`).
-
-### Phase 1 — data (three tiers, scripted downloads, documented licenses)
+### Phase 1 — data (three tiers, scripted downloads)
 - [ ] Synthetic factor panel: N assets × T days, heavy-tailed common factor,
       correlation knob ρ ∈ {0, 0.2, 0.4, 0.6, 0.8}; fresh unseen events can be
       generated at test time.
-- [ ] The ρ = 0 null gate: the measured design effect must come out 1.00 before
-      anything else runs.
+- [ ] The ρ = 0 null gate: the measured design effect should come out 1.00. 
 - [ ] S&P 500 volatility: free EOD OHLCV from a source with a documented license
       (e.g. a Stooq dump — not ToS-gray scraping); target = next-day Parkinson or
       Garman–Klass volatility; re-measure and report the ICC (the ≈ 0.41 above).
@@ -166,7 +142,7 @@ Compute envelope: one GPU; MLP-scale models throughout.
 - [ ] Classical baselines wired in: HAR-RV for volatility; seasonal-naive and a
       temperature GBM for load.
 
-### Phase 2 — leakage tests (rebuilding the suite this repo once had)
+### Phase 2 — leakage tests 
 - [ ] Sealed holdout: untouched by default and never intersecting train/val.
 - [ ] Target is next-day, never same-day; log target consistent with raw target.
 - [ ] Features invariant to shuffling future rows — plus a test proving that
@@ -177,16 +153,16 @@ Compute envelope: one GPU; MLP-scale models throughout.
       `scripts/run_tests.py`; the paper's reproducibility statement points at
       that log.
 
-### Phase 3 — methods (one shared interface; identical architecture, optimizer, and tuning budget across methods)
+### Phase 3 — methods (identical architecture, optimizer, and tuning budget across methods)
 - [ ] Weighting: none · inverse frequency · LDS · design-effect-corrected LDS
       (each weight divided by its event's 1 + (m − 1)ρ̂, with ρ̂ estimated on
       training folds only).
 - [ ] Sampling: none · random under/over · SMOTER · cluster-aware sampling of
       whole events.
-- [ ] Modern DIR: FDS · RankSim · Balanced MSE (ConR optional).
+- [ ] Modern DIR: FDS · RankSim · Balanced MSE.
 - [ ] Honest baseline: plain MLP on the log target.
 - [ ] Grid restraint: sampling crossed with the vanilla loss only; roughly 15–20
-      configs × 5 seeds — sized for one GPU.
+      configs × 5 seeds. 
 
 ### Phase 4 — evaluation protocol
 - [ ] Blocked temporal splits with an embargo gap; no event ever straddles a
@@ -209,27 +185,7 @@ Compute envelope: one GPU; MLP-scale models throughout.
       event-definition sensitivity; robustness to error in ρ̂.
 
 ### Phase 6 — analysis
-- [ ] `HYPOTHESES.md` committed — and thereby timestamped — before the first
-      real-data run.
+- [ ] `HYPOTHESES.md` 
 - [ ] Effect sizes with cluster-bootstrap intervals, not significance stars.
-- [ ] Datasets where the effect fails to appear are reported, not dropped.
+- [ ] Datasets where the effect fails to appear are reported.
 
-### Phase 7 — paper
-- [ ] TMLR format, sources under `paper/`; the intro leads with the worked
-      design-effect example.
-- [ ] One small proposition: under cluster sampling, the variance of the
-      weighted gradient estimator inflates by the design effect.
-- [ ] Pre-empted objections, in text: (a) “isn't this just blocked CV /
-      clustered standard errors?” — evaluation correction is necessary but not
-      sufficient; the training loss itself is distorted, and that is what gets
-      quantified and fixed; (b) “history contains only one 2008” — the synthetic
-      tier generates genuinely unseen events, and the real tiers are evaluated
-      leave-event-out.
-- [ ] Limitations and reproducibility statement; anonymized code mirror for
-      review.
-
-### Phase 8 — release and submission
-- [ ] One command per figure and table; download scripts with checksums; a
-      license file.
-- [ ] TMLR submission on OpenReview; optionally a workshop version afterwards
-      for visibility.

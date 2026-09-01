@@ -1,4 +1,4 @@
-"""All randomness in the project is seeded through this module and nowhere else.
+"""All randomness in the project is seeded through this module.
 
 Code that needs a numpy Generator should derive it from the run seed
 (``np.random.default_rng(seed)``) rather than pulling fresh OS entropy —

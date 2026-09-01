@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Run the test suite and log the outcome.
 
-No CI by decision: tests are run manually with this script, which appends one
+Tests are run manually with this script, which appends one
 row per run to TESTLOG.md (committed) and keeps the full pytest output under
 results/test_runs/<run_id>/ (gitignored, regenerable).
 

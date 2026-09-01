@@ -1,4 +1,4 @@
-"""Load and validate run configs. One YAML file per run, nothing hidden."""
+"""Load and validate run configs. One YAML file per run."""
 
 from pathlib import Path
 from typing import Any
