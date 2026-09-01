@@ -173,3 +173,37 @@ weight by its redundancy factor, does nothing when every day has the same
 number of stocks, because dividing everything by the same number changes
 nothing in relative terms. The two-part weight described above is the fix.
 Catching this before any experiment ran is what the test suite is for.
+
+## 2026-09-01 Phase 4: the referee
+
+Now we define the metrics to establish a baseline for what we would expect to 
+see if our hypothesis is correct.
+
+- **Overall accuracy.** Standard error measures across all days, so nobody
+  wins the extremes by ruining the everyday forecasts.
+- **Accuracy on the wild days only.** The same errors, restricted to days
+  above the top 5% and 10% of what was seen in training.
+- **SERA.** Instead of one sharp cutoff between ordinary and wild, every error 
+  is weighted by how much we care about that level of the target, using the curve 
+  below.
+- **The memorization gap.** wild-day error on days the model has never seen, 
+  minus wild-day error on the days it trained on. A model that learned the 
+  subject scores similarly on both. A model that memorized its few crises aces 
+  the seen ones and flunks the unseen ones. This gap is the paper's central 
+  diagnostic.
+- **Per-event scores.** Errors are averaged within each day first, then
+  across days. Otherwise one 500-stock crisis day would sway the average 500
+  times over, the very over-counting this paper accuses others of.
+
+![the relevance curve behind SERA](journal/relevance_curve.png)
+
+Error bars come from resampling whole days, never single rows. Rows from the
+same day rise and fall together, so row resampling would claim far more
+certainty than the data holds; our tests confirm the honest day-level error
+bars are more than twice as wide. When two methods are compared, both are
+scored on the same resampled days and we report the range of the difference.
+
+As a first end-to-end check we ran one small contest on the highly correlated
+synthetic market: the humble log-scale baseline beat LDS on every measure,
+decisively. One fold, one seed, tiny models, so it proves the machinery rather
+than the thesis.
