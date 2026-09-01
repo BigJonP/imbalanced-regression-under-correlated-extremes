@@ -114,3 +114,40 @@ To avoid data leakage and ensure the integrity of out testing we do the followin
 
 ![how the timeline is split](journal/timeline_splits.png)
 
+
+## 2026-09-01 Phase 3: the competitors
+
+Now the contestants. Every method uses the exact same small neural network,
+same optimizer, same training budget. The only thing that differs is what data 
+each one sees and how much each example counts. If a method wins, it wins on 
+its idea, not on scale or architecture. 
+
+- **The plain model.** Sees everything, counts everything once. Tends to
+  ignore extremes, which is the problem we started with.
+- **The honest baseline.** The same model with the target on a log scale.
+  Costs nothing, and every fancy method has to beat it.
+- **Portion control (weighting).** Rare examples count extra: bluntly
+  (inverse frequency) or smoothed (LDS, the method our paper examines). Our
+  correction keeps the extra attention on rare values but recognizes that 60
+  copies of the same day are not 60 independent lessons, so part of each
+  day's weight is judged at the day level: one story counts once.
+- **Menu control (sampling).** Change the menu instead of the portions: drop
+  common days, repeat rare days, cook up synthetic rare-ish days (SMOTER), or
+  repeat whole days at a time (our cluster-aware version).
+- **The modern toolbox.** Three recent methods from the literature (FDS,
+  RankSim, Balanced MSE), so the comparison covers today's field and not just
+  the 2021 original.
+
+![training attention on the 10 most extreme days](journal/weight_share.png)
+
+On a highly correlated synthetic market, LDS spends 37% of its total training
+attention on 10 days out of 400. Our correction brings that to 31% while still
+giving rare days far more than their equal share of 3%. Whether the smaller
+dose of obsession buys better predictions on unseen events is exactly what the
+experiments will measure.
+
+One design discovery worth recording: our first idea, dividing each day's
+weight by its redundancy factor, does nothing when every day has the same
+number of stocks, because dividing everything by the same number changes
+nothing in relative terms. The two-channel weight described above is the fix.
+Catching this before any experiment ran is what the test suite is for.
