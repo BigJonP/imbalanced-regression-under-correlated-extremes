@@ -137,14 +137,16 @@ The neighbours this paper builds upon and differes from are:
 - [x] Classical baselines wired in (`dire.methods.classical`): HAR-RV,
       seasonal-naive, temperature GBM.
 
-### Phase 2 — leakage tests 
-- [ ] Sealed holdout: untouched by default and never intersecting train/val.
-- [ ] Target is next-day, never same-day; log target consistent with raw target.
-- [ ] Features invariant to shuffling future rows — plus a test proving that
-      test can fail.
-- [ ] Per-fold statistics (LDS bin and quantile edges, scalers, ICC) invariant
-      to corrupting or deleting test rows.
-- [ ] Every suite run is appended to `TESTLOG.md` by
+### Phase 2 — leakage tests (done 2026-09-01)
+- [x] Sealed holdout (`dire.eval.splits.TemporalSplits`): access requires
+      confirm=True; never intersects train/val, targets included.
+- [x] Target is next-day, never same-day; log target consistent with raw target.
+- [x] Features invariant to shuffling future rows — plus the canary test proving
+      the check can fail, and a guard that fold statistics cannot pass vacuously.
+- [x] Per-fold statistics (LDS bin and quantile edges, market scaler, ICC;
+      `dire.eval.fold_stats`) invariant to corrupting or deleting test rows,
+      for 1/3/5 walk-forward folds with a 5-day embargo.
+- [x] Every suite run is appended to `TESTLOG.md` by
       `scripts/run_tests.py`; the paper's reproducibility statement points at
       that log.
 

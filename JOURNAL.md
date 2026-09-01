@@ -92,3 +92,25 @@ beat: "tomorrow looks like the recent past" (HAR), "same day last week"
 factor (design effect): how over-counted a day is when every row is treated as
 independent — 405 stock-rows ÷ 186 ≈ 2 truly independent observations.*
 
+
+## 2026-09-01 Phase 2: the paranoia suite
+
+To avoid data leakage and ensure the integrity of out testing we do the following:
+
+- **A sealed final exam.** The last stretch of time is locked away. The code
+  refuses to hand it over unless you explicitly confirm, and tests prove no
+  training or validation slice ever touches it.
+- **Quarantine gaps.** Between every study period and its test period we skip
+  a few days, so the last study day's "tomorrow" cannot land in the test.
+- **Nothing is computed from the future.** Every number the pipeline learns
+  from data (histogram bins, scalers, the togetherness measure) is fitted on
+  the study slice only. The proof is blunt: we multiply all test data by 100,
+  or delete it entirely, and verify nothing on the study side moves by a
+  single bit. 24 variations of this run automatically.
+- **We test the tests.** A smoke detector you never test is decoration. We
+  plant a deliberately cheating feature (the answer itself) and confirm the
+  leak detector goes off. It does. We also corrupt the training slice and
+  confirm every fitted number *does* change, so no check can pass vacuously.
+
+![how the timeline is split](journal/timeline_splits.png)
+
