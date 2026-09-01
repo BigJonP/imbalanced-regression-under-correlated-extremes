@@ -1,8 +1,4 @@
-"""Phase 2 gate: nothing from validation, holdout, or the future can touch training.
-
-Rebuilt from the suite this repo historically had. All tests run on synthetic
-data only, so a fresh clone passes before any download.
-"""
+"""Phase 2 gate: nothing from validation, holdout, or the future can touch training."""
 
 import numpy as np
 import pandas as pd
