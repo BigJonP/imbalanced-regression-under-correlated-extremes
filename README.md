@@ -166,15 +166,19 @@ The neighbours this paper builds upon and differes from are:
 - [x] Grid restraint: 17 named methods behind one fit/predict interface
       (`dire.methods.registry`), sampling crossed with the vanilla loss only.
 
-### Phase 4 — evaluation protocol
-- [ ] Blocked temporal splits with an embargo gap; no event ever straddles a
-      split.
-- [ ] Metrics: overall MSE/MAE; tail MSE on the top 5% and 10%; SERA; and the
-      train-vs-test extreme-error gap as the memorization diagnostic.
-- [ ] Per-event errors: aggregate within an event before averaging across
+### Phase 4 — evaluation protocol (done 2026-09-01)
+- [x] Blocked temporal splits with an embargo gap; no event ever straddles a
+      split (delivered in Phase 2: `dire.eval.splits.TemporalSplits`).
+- [x] Metrics (`dire.eval.metrics`): overall MSE/MAE; tail MSE on the top 5%
+      and 10% (train-derived thresholds); SERA with a train-fitted relevance
+      function; and the train-vs-val extreme-error gap as the memorization
+      diagnostic (`dire.eval.protocol.score_predictions`).
+- [x] Per-event errors: aggregate within an event before averaging across
       events — the row-level average is exactly the mistake this paper is about.
-- [ ] At least 5 seeds; cluster bootstrap over events (never over rows) for
-      confidence intervals and paired comparisons.
+- [x] Cluster bootstrap over events, never over rows (`dire.eval.bootstrap`):
+      percentile CIs and paired comparisons on identical event resamples;
+      tests confirm the honest intervals are >2x wider than row bootstrapping
+      would claim. Multi-seed orchestration lands with the Phase 5 runner.
 
 ### Phase 5 — experiments
 - [ ] The central figure: extreme-region test error (and the train–test gap)
