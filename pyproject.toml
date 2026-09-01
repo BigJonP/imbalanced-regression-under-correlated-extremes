@@ -1,0 +1,28 @@
+[project]
+name = "dire"
+version = "0.1.0"
+description = "Experiment code for the paper 'Imbalanced Regression Under Correlated Extremes'"
+requires-python = ">=3.12"
+dependencies = [
+    "numpy>=2.0,<3",
+    "pandas>=2.2,<3",
+    "scikit-learn>=1.5,<2",
+    "torch>=2.4,<3",
+    "pyyaml>=6.0,<7",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3,<9",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"

@@ -1,0 +1,20 @@
+# One YAML per run. `seed` is mandatory; everything else is read by the phase
+# that owns it. This file doubles as the schema reference until Phase 3 locks it.
+run_name: example
+seed: 20260901
+
+dataset:
+  name: synthetic_factor_panel   # Phase 1
+  correlation: 0.4
+
+method:
+  weighting: lds                 # none | inverse_frequency | lds | lds_design_effect
+  sampling: none                 # none | random_under | random_over | smoter | cluster_aware
+
+model:
+  hidden_layers: [64, 64]
+
+training:
+  epochs: 100
+  batch_size: 256
+  lr: 1.0e-3
