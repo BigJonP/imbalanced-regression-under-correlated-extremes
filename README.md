@@ -150,16 +150,21 @@ The neighbours this paper builds upon and differes from are:
       `scripts/run_tests.py`; the paper's reproducibility statement points at
       that log.
 
-### Phase 3 — methods (identical architecture, optimizer, and tuning budget across methods)
-- [ ] Weighting: none · inverse frequency · LDS · design-effect-corrected LDS
-      (each weight divided by its event's 1 + (m − 1)ρ̂, with ρ̂ estimated on
-      training folds only).
-- [ ] Sampling: none · random under/over · SMOTER · cluster-aware sampling of
-      whole events.
-- [ ] Modern DIR: FDS · RankSim · Balanced MSE.
-- [ ] Honest baseline: plain MLP on the log target.
-- [ ] Grid restraint: sampling crossed with the vanilla loss only; roughly 15–20
-      configs × 5 seeds. 
+### Phase 3 — methods (identical architecture, optimizer, and tuning budget across methods) (done 2026-09-01)
+- [x] Weighting (`dire.methods.weighting`): none · inverse frequency ·
+      sqrt-inverse · LDS · design-effect-corrected LDS. The correction keeps
+      1/deff of the row-level LDS weight (deff = 1 + (m − 1)ρ̂, ρ̂ estimated on
+      the training slice only) and judges the remaining share at the event
+      level: day-mean rarity, split across the day's rows. A pure division by
+      deff is a no-op on balanced panels — the tests exposed this before any
+      experiment ran.
+- [x] Sampling (`dire.methods.sampling`): none · random under/over · SMOTER ·
+      cluster-aware oversampling of whole events.
+- [x] Modern DIR (`dire.methods.mlp`): FDS · RankSim · Balanced MSE, plus the
+      shared MLP with early stopping and per-seed determinism.
+- [x] Honest baseline: the same MLP on the log target.
+- [x] Grid restraint: 17 named methods behind one fit/predict interface
+      (`dire.methods.registry`), sampling crossed with the vanilla loss only.
 
 ### Phase 4 — evaluation protocol
 - [ ] Blocked temporal splits with an embargo gap; no event ever straddles a

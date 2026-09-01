@@ -7,9 +7,7 @@ dataset:
   name: synthetic_factor_panel   
   correlation: 0.4
 
-method:
-  weighting: lds                 # none | inverse_frequency | lds | lds_design_effect
-  sampling: none                 # none | random_under | random_over | smoter | cluster_aware
+method: lds                      # any key of dire.methods.registry.METHODS
 
 model:
   hidden_layers: [64, 64]
