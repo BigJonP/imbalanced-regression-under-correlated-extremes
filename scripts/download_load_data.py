@@ -11,7 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from dire.data import opsd
-from dire.data.diagnostics import design_effect, intraclass_correlation
+from dire.data.diagnostics import design_effect, intraclass_correlation, standardize_within_unit
 from dire.data.events import episode_labels, heatwave_flags
 from dire.data.io import PROCESSED_DIR, RAW_DIR, download, write_checksum_manifest
 
@@ -40,14 +40,16 @@ def main() -> int:
     )
 
     log_y = np.log(panel["y"])
+    z = standardize_within_unit(log_y, panel["unit"])
     icc = intraclass_correlation(log_y, panel["date"])
-    deff = design_effect(log_y, panel["date"])
+    icc_std = intraclass_correlation(z, panel["date"])
+    deff = design_effect(z, panel["date"])
     cross_temp = panel.groupby("date")["temp_max"].mean()
     eps = episode_labels(heatwave_flags(cross_temp))
     n_eps = eps.dropna().nunique()
     print(f"panel: {len(panel)} rows, {panel['unit'].nunique()} zones, "
           f"{panel['date'].nunique()} days")
-    print(f"ICC(log peak | day) = {icc:.3f}, deff = {deff:.1f}")
+    print(f"ICC(log peak | day): raw = {icc:.3f}, standardized = {icc_std:.3f}, deff(std) = {deff:.1f}")
     print(f"heat-wave episodes (q=0.95, full sample): {n_eps}")
     hot = cross_temp[heatwave_flags(cross_temp)]
     print("hottest flagged dates:", ", ".join(str(d.date()) for d in hot.nlargest(5).index))

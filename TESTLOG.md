@@ -8,3 +8,4 @@ tested; `+dirty` means uncommitted changes were present.
 | when | tree | passed | failed | errors | skipped | duration | outcome | full output |
 |---|---|---|---|---|---|---|---|---|
 | 2026-09-01 08:44 UTC | ef17b90 | 10 | 0 | 0 | 0 | 2.0s | ok | results/test_runs/20260901-084419 |
+| 2026-09-01 09:00 UTC | adbf9d7+dirty | 40 | 0 | 0 | 0 | 5.0s | ok | results/test_runs/20260901-090023 |

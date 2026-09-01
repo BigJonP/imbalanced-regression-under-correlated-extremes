@@ -46,7 +46,7 @@ dataset was available:
 |---|---|---|
 | synthetic | factor panel, correlation swept from 0 to 0.8 | correlation is *set*, so any effect can be traced against it |
 | real, strongly correlated | S&P 500 equity volatility | measured intra-class correlation ≈ 0.41 |
-| real, differently correlated | electricity load across zones | heat waves as the structural analogue of market stress |
+| real, differently correlated | electricity load across zones | heat waves as the structural analogue of market stress; measured standardized ICC ≈ 0.75 |
 
 The synthetic tier doubles as a correctness check on the whole pipeline: at zero
 correlation the design effect must come out at 1.00, and if it does not, the
@@ -119,21 +119,24 @@ The neighbours this paper builds upon and differes from are:
 
 ## Research roadmap
 
-### Phase 1 — data (three tiers, scripted downloads)
-- [ ] Synthetic factor panel: N assets × T days, heavy-tailed common factor,
-      correlation knob ρ ∈ {0, 0.2, 0.4, 0.6, 0.8}; fresh unseen events can be
-      generated at test time.
-- [ ] The ρ = 0 null gate: the measured design effect should come out 1.00. 
-- [ ] S&P 500 volatility: free EOD OHLCV from a source with a documented license
-      (e.g. a Stooq dump — not ToS-gray scraping); target = next-day Parkinson or
-      Garman–Klass volatility; re-measure and report the ICC (the ≈ 0.41 above).
-- [ ] Electricity load: GEFCom2014 or Open Power System Data zonal load with
-      temperature; heat waves as the cross-zone correlated extreme.
-- [ ] Event definitions frozen per dataset before any experiment (finance:
-      calendar day, optionally multi-day episodes; load: heat-wave episodes
-      spanning zones).
-- [ ] Classical baselines wired in: HAR-RV for volatility; seasonal-naive and a
-      temperature GBM for load.
+### Phase 1 — data (three tiers, scripted downloads; see DATASETS.md)
+- [x] Synthetic factor panel (`dire.data.synthetic`): heavy-tailed common
+      factor, ICC(log y | day) = ρ by construction; a new seed draws fresh
+      unseen events.
+- [x] The ρ = 0 null gate: measured design effect = 1.00, enforced in
+      `tests/test_data.py`.
+- [ ] S&P 500 volatility: pipeline, Parkinson target, and committed ODC-PDDL
+      universe snapshot done — awaiting the one manual Stooq archive download
+      (DATASETS.md), then `uv run scripts/download_sp500.py` re-measures the
+      ICC (the ≈ 0.41 above).
+- [x] Electricity load: OPSD zonal peak load (CC-BY-4.0) + ERA5 capital
+      temperatures, fully scripted; measured standardized ICC = 0.745,
+      deff ≈ 7.7 across 10 zones.
+- [x] Event definitions frozen (DATASETS.md): day = primary cluster everywhere;
+      heat-wave episodes at q = 0.95 with train-only thresholds; the 2018/2019/
+      2020 European heat waves are exactly what gets flagged.
+- [x] Classical baselines wired in (`dire.methods.classical`): HAR-RV,
+      seasonal-naive, temperature GBM.
 
 ### Phase 2 — leakage tests 
 - [ ] Sealed holdout: untouched by default and never intersecting train/val.

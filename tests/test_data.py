@@ -238,3 +238,29 @@ def test_build_load_panel_from_fixtures(tmp_path):
     assert len(panel) == 2
     assert (panel["y"] == 51500).all()
     assert panel["temp_max"].tolist() == [30.5, 33.0]
+
+
+# --- standardized ICC ------------------------------------------------------
+
+def test_standardized_icc_invariant_for_exchangeable_units():
+    from dire.data.diagnostics import standardize_within_unit
+
+    panel = generate_panel(60, 3000, rho=0.4, seed=5, phi_common=0.3, phi_idio=0.3)
+    log_y = np.log(panel["y"])
+    z = standardize_within_unit(log_y, panel["unit"])
+    raw = intraclass_correlation(log_y, panel["date"])
+    std = intraclass_correlation(z, panel["date"])
+    assert std == pytest.approx(raw, abs=0.02)
+    assert std == pytest.approx(0.4, abs=0.05)
+
+
+def test_standardized_icc_removes_unit_scale_offsets():
+    from dire.data.diagnostics import standardize_within_unit
+
+    values, groups = _gaussian_clusters(0.5, n_groups=2000, m=10)
+    units = np.tile(np.arange(10), 2000)
+    offset = values + units * 50.0  # huge static per-unit offsets
+    raw = intraclass_correlation(offset, groups)
+    std = intraclass_correlation(standardize_within_unit(offset, units), groups)
+    assert raw < 0.05
+    assert std == pytest.approx(0.5, abs=0.05)

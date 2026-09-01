@@ -29,3 +29,15 @@ def design_effect(values, groups) -> float:
     icc, sizes = _anova(values, groups)
     m_bar = float((sizes**2).sum()) / float(sizes.sum())
     return 1.0 + (m_bar - 1.0) * icc
+
+
+def standardize_within_unit(values, units) -> np.ndarray:
+    """Z-score values per unit, removing static scale differences between units.
+
+    Raw pooled ICC is dominated by between-unit level differences (e.g. DE vs PT
+    load); co-movement — what drives the design effect — shows up after each
+    unit is standardized against its own mean and sd.
+    """
+    df = pd.DataFrame({"v": np.asarray(values, dtype=float), "u": np.asarray(units)})
+    g = df.groupby("u")["v"]
+    return ((df["v"] - g.transform("mean")) / g.transform("std")).to_numpy()

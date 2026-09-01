@@ -15,7 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 import numpy as np
 
 from dire.data import sp500
-from dire.data.diagnostics import design_effect, intraclass_correlation
+from dire.data.diagnostics import design_effect, intraclass_correlation, standardize_within_unit
 from dire.data.io import PROCESSED_DIR, RAW_DIR, download, write_checksum_manifest
 
 ZIP_PATH = RAW_DIR / "stooq" / "d_us_txt.zip"
@@ -48,8 +48,10 @@ def main() -> int:
     skipped = panel.attrs["skipped_tickers"]
     print(f"panel: {len(panel)} rows, {panel['unit'].nunique()} tickers "
           f"({len(skipped)} skipped: {', '.join(skipped[:8])}{'...' if len(skipped) > 8 else ''})")
-    print(f"ICC(log vol | day) = {intraclass_correlation(log_y, panel['date']):.3f}, "
-          f"deff = {design_effect(log_y, panel['date']):.1f}")
+    z = standardize_within_unit(log_y, panel["unit"])
+    print(f"ICC(log vol | day): raw = {intraclass_correlation(log_y, panel['date']):.3f}, "
+          f"standardized = {intraclass_correlation(z, panel['date']):.3f}, "
+          f"deff(std) = {design_effect(z, panel['date']):.1f}")
     return 0
 
 
