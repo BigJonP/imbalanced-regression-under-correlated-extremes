@@ -45,7 +45,7 @@ dataset was available:
 | tier | data | why it is here |
 |---|---|---|
 | synthetic | factor panel, correlation swept from 0 to 0.8 | correlation is *set*, so any effect can be traced against it |
-| real, strongly correlated | S&P 500 equity volatility | measured intra-class correlation ≈ 0.41 |
+| real, strongly correlated | S&P 500 equity volatility | measured standardized ICC = 0.435, deff ≈ 186 |
 | real, differently correlated | electricity load across zones | heat waves as the structural analogue of market stress; measured standardized ICC ≈ 0.75 |
 
 The synthetic tier doubles as a correctness check on the whole pipeline: at zero
@@ -119,16 +119,15 @@ The neighbours this paper builds upon and differes from are:
 
 ## Research roadmap
 
-### Phase 1 — data (three tiers, scripted downloads; see DATASETS.md)
+### Phase 1 — data (three tiers, scripted downloads; see DATASETS.md) (done 2026-09-01)
 - [x] Synthetic factor panel (`dire.data.synthetic`): heavy-tailed common
       factor, ICC(log y | day) = ρ by construction; a new seed draws fresh
       unseen events.
 - [x] The ρ = 0 null gate: measured design effect = 1.00, enforced in
       `tests/test_data.py`.
-- [ ] S&P 500 volatility: pipeline, Parkinson target, and committed ODC-PDDL
-      universe snapshot done — awaiting the one manual Stooq archive download
-      (DATASETS.md), then `uv run scripts/download_sp500.py` re-measures the
-      ICC (the ≈ 0.41 above).
+- [x] S&P 500 volatility: 492 tickers, 2.7M rows, 2000–2026, Parkinson target;
+      measured standardized ICC = 0.435 (the ≈ 0.41 claim confirmed),
+      deff ≈ 186 — an average market day carries ~2 independent observations.
 - [x] Electricity load: OPSD zonal peak load (CC-BY-4.0) + ERA5 capital
       temperatures, fully scripted; measured standardized ICC = 0.745,
       deff ≈ 7.7 across 10 zones.

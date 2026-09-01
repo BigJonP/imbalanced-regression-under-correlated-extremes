@@ -26,6 +26,13 @@ the same process. Null gate: at ρ = 0 the measured design effect is 1.00
   use, not redistributable — hence gitignored, processing-only in git.
 - Target: daily Parkinson volatility √(ln²(H/L)/(4 ln 2)), days with H > L > 0,
   from 2000-01-01, tickers with ≥ 1000 usable days.
+- Built 2026-09-01 from the archive dated 2026-08-31: 2,716,706 rows, 492
+  tickers, 6,705 trading days (2000-01-03..2026-08-31); 11 tickers skipped for
+  short history (recent IPOs/spin-offs: FDXF, GEHC, GEV, HONA, KVUE, Q, RDDT,
+  SNDK, ...). Measured ICC(log vol | day): raw = 0.363, standardized = 0.435,
+  deff(std) ≈ 186 at mean cluster size ~405 — an average market day carries
+  ~2.2 independent observations. Highest market-vol days: 2008-10-10,
+  2020-03-18/19, 2008-09-19, 2008-10-09.
 
 ## Electricity load — fully scripted
 
