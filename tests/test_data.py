@@ -71,6 +71,36 @@ def test_extremes_cluster_by_day_only_under_correlation():
     assert distinct_extreme_dates(0.8) < 0.5 * distinct_extreme_dates(0.0)
 
 
+def test_common_factor_stays_right_skewed():
+    """The bug this replaced: an AR(1) of heavy-tailed innovations at phi = 0.96
+    averages ~25 of them per value, so the CLT returns a Gaussian factor with no
+    crisis days at all. The old generator scores ~0.0 here."""
+    for seed in range(6):
+        panel = generate_panel(40, 2000, rho=0.6, seed=seed)
+        h = panel.groupby("date")["latent_common"].first()
+        assert h.skew() > 0.5, f"seed {seed}: common factor is not right-skewed"
+
+
+@pytest.mark.parametrize("rho", [0.4, 0.8])
+def test_day_means_are_right_skewed_like_the_market(rho):
+    """Day means are where crises live: the S&P's is +1.07, the old generator's
+    was +0.12."""
+    for seed in range(6):
+        panel = generate_panel(40, 2000, rho=rho, seed=seed)
+        day_mean = panel.assign(ly=np.log(panel["y"])).groupby("date")["ly"].mean()
+        assert day_mean.skew() > 0.5, f"seed {seed}: day means are not right-skewed"
+
+
+def test_generated_panel_has_crisis_days():
+    """The top percentile of days must sit further above the middle than a
+    Gaussian panel's would (2.33 sd), so 'crisis day' is asserted, not assumed."""
+    for seed in range(6):
+        panel = generate_panel(40, 2000, rho=0.6, seed=seed)
+        day_mean = panel.assign(ly=np.log(panel["y"])).groupby("date")["ly"].mean()
+        excess = (day_mean.quantile(0.99) - day_mean.median()) / day_mean.std()
+        assert excess > 2.7, f"seed {seed}: no crisis days, excess = {excess:.2f}"
+
+
 def test_synthetic_rejects_bad_rho():
     with pytest.raises(ValueError):
         generate_panel(5, 50, rho=1.0, seed=0)
@@ -186,6 +216,30 @@ def test_stooq_member_name_handles_share_classes():
     assert stooq_member_name("BRK.B") == "brk-b.us.txt"
 
 
+def _stooq_zip(tmp_path, rows):
+    import zipfile
+
+    header = "<TICKER>,<PER>,<DATE>,<TIME>,<OPEN>,<HIGH>,<LOW>,<CLOSE>,<VOL>,<OPENINT>"
+    body = "\n".join(
+        f"AAA.US,D,{d},000000,{lo},{hi},{lo},{lo},1,0" for d, hi, lo in rows
+    )
+    path = tmp_path / "d_us_txt.zip"
+    with zipfile.ZipFile(path, "w") as zf:
+        zf.writestr("data/daily/us/aaa.us.txt", f"{header}\n{body}\n")
+    return path
+
+
+def test_sp500_range_filter_drops_bad_ticks(tmp_path):
+    from dire.data.sp500 import build_panel
+
+    rows = [(20200102, 101.0, 100.0),   # ordinary
+            (20200103, 400.0, 100.0),   # genuine crisis session, 4x range
+            (20200106, 1010.0, 100.0)]  # decimal error, 10x range
+    panel = build_panel(_stooq_zip(tmp_path, rows), ["AAA"], min_obs=1)
+    kept = panel["date"].dt.strftime("%Y%m%d").tolist()
+    assert kept == ["20200102", "20200103"]
+
+
 # --- classical baselines ---------------------------------------------------
 
 def test_seasonal_naive_exact_on_weekly_pattern():
@@ -238,6 +292,30 @@ def test_build_load_panel_from_fixtures(tmp_path):
     assert len(panel) == 2
     assert (panel["y"] == 51500).all()
     assert panel["temp_max"].tolist() == [30.5, 33.0]
+
+
+def test_load_filter_drops_impossible_peaks(tmp_path):
+    from dire.data.opsd import build_load_panel
+
+    import json
+
+    days = pd.date_range("2018-07-01", periods=9)
+    peaks = [40000.0] * 7 + [60000.0, 130000.0]  # 1.5x is a heat wave, 3.2x is a bad reading
+    hours = pd.date_range("2018-07-01", periods=24 * 9, freq="h", tz="UTC")
+    load = np.concatenate([np.linspace(p / 2, p, 24) for p in peaks])
+    csv = tmp_path / "opsd.csv"
+    pd.DataFrame(
+        {"utc_timestamp": hours, "DE_load_actual_entsoe_transparency": load}
+    ).to_csv(csv, index=False)
+
+    temp = tmp_path / "DE.json"
+    temp.write_text(json.dumps(
+        {"daily": {"time": [str(d.date()) for d in days],
+                   "temperature_2m_max": [25.0] * 9}}
+    ))
+    panel = build_load_panel(csv, {"DE": temp})
+    assert panel["y"].max() == 60000.0
+    assert len(panel) == 8
 
 
 # --- standardized ICC ------------------------------------------------------

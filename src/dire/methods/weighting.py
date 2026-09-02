@@ -1,7 +1,11 @@
 """Sample weights, all fitted on the training slice passed in. Mean weight is 1."""
 
+from functools import partial
+
 import numpy as np
 import pandas as pd
+
+from dire.data.events import episode_labels
 
 from dire.data.diagnostics import intraclass_correlation, standardize_within_unit
 from dire.data.panel import DATE, TARGET_LOG, UNIT
@@ -41,12 +45,17 @@ def _gaussian_kernel(size=KERNEL_SIZE, sigma=KERNEL_SIGMA):
     return k / k.sum()
 
 
-def lds_weights(train_df):
+def lds_weights(train_df, kernel_size=KERNEL_SIZE, sigma=KERNEL_SIGMA):
     """Yang et al. (2021): inverse of the kernel-smoothed target density."""
     bins = _bin_index(train_df)
     counts = np.bincount(bins, minlength=N_BINS).astype(float)
-    smoothed = np.convolve(counts, _gaussian_kernel(), mode="same")
+    smoothed = np.convolve(counts, _gaussian_kernel(kernel_size, sigma), mode="same")
     return _normalize(1.0 / smoothed[bins])
+
+
+def lds_capped_weights(train_df, cap=10.0):
+    """Is plain clipping enough? LDS with weights capped at `cap` x the mean."""
+    return _normalize(np.minimum(lds_weights(train_df), cap))
 
 
 def _event_lds_weights(event_means):
@@ -58,31 +67,48 @@ def _event_lds_weights(event_means):
     return _normalize(1.0 / smoothed[bins])
 
 
-def lds_deff_weights(train_df):
+def day_events(train_df):
+    """The frozen primary definition: one event per calendar day."""
+    return pd.Series(train_df[DATE].to_numpy(), index=train_df.index)
+
+
+def episode_events(train_df, q=0.95, gap=1):
+    """The episode variant: runs of extreme days merged across gaps <= `gap`.
+
+    Ordinary days keep their own identity; only the extreme stretches (a
+    week-long heat wave, a crash week) collapse into one event. Thresholds come
+    from the training frame passed in, which is all this function ever sees.
+    """
+    day_mean = train_df.groupby(DATE)[TARGET_LOG].mean()
+    labels = episode_labels(day_mean >= day_mean.quantile(q), gap=gap)
+    ids = labels.where(labels.notna(), pd.Series(day_mean.index.astype(str), index=labels.index))
+    return pd.Series(ids.loc[train_df[DATE]].to_numpy(), index=train_df.index)
+
+
+def lds_deff_weights(train_df, rho_scale=1.0, event_fn=day_events):
     """Design-effect-corrected LDS.
 
-    An event (day) with m rows and intraclass correlation rho carries only
-    1/deff of a row's worth of independent row-level information
+    An event (a day by default) with m rows and intraclass correlation rho
+    carries only 1/deff of a row's worth of independent row-level information
     (deff = 1 + (m - 1) * rho, Kish). That share keeps its row-level LDS
     weight, discounted by deff; the remaining share is one shared story,
-    weighted by the rarity of the DAY-MEAN target among days and split across
-    the day's rows. At rho = 0 this reduces exactly to LDS; at high rho it
-    counts each story once instead of each copy. Note: a pure per-event
-    division by deff is a no-op on balanced panels (constant rescale), which
-    is why the event-level channel exists.
+    weighted by the rarity of the EVENT-MEAN target among events and split
+    across the event's rows. At rho = 0 this reduces exactly to LDS; at high
+    rho it counts each story once instead of each copy.
     """
     row_w = lds_weights(train_df)
+    ev = event_fn(train_df)
     z = standardize_within_unit(train_df[TARGET_LOG], train_df[UNIT])
-    rho = max(float(intraclass_correlation(z, train_df[DATE])), 0.0)
+    rho = min(max(float(intraclass_correlation(z, ev)) * rho_scale, 0.0), 0.999)
 
-    by_event = train_df.groupby(DATE)[TARGET_LOG]
+    by_event = train_df.groupby(ev.to_numpy())[TARGET_LOG]
     event_means = by_event.mean()
     event_w = pd.Series(_event_lds_weights(event_means.to_numpy()), index=event_means.index)
     m = by_event.size()
     deff = 1.0 + (m - 1) * rho
 
-    per_row_event = _normalize((event_w / m).loc[train_df[DATE]].to_numpy())
-    share = (1.0 / deff).loc[train_df[DATE]].to_numpy()
+    per_row_event = _normalize((event_w / m).loc[ev].to_numpy())
+    share = (1.0 / deff).loc[ev].to_numpy()
     return _normalize(share * row_w + (1.0 - share) * per_row_event)
 
 
@@ -92,4 +118,11 @@ WEIGHTINGS = {
     "sqinv": sqinv_weights,
     "lds": lds_weights,
     "lds_deff": lds_deff_weights,
+    # ablation variants
+    "lds_cap": lds_capped_weights,
+    "lds_narrow": partial(lds_weights, kernel_size=1),
+    "lds_wide": partial(lds_weights, kernel_size=9, sigma=3.0),
+    "lds_deff_lo": partial(lds_deff_weights, rho_scale=0.5),
+    "lds_deff_hi": partial(lds_deff_weights, rho_scale=1.5),
+    "lds_deff_episode": partial(lds_deff_weights, event_fn=episode_events),
 }

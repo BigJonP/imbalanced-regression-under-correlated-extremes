@@ -21,6 +21,7 @@ CONSTITUENTS_URL = (
 )  # ODC-PDDL (public domain)
 UNIVERSE_FILE = REPO_ROOT / "configs" / "sp500_universe.csv"
 _PARKINSON = 1.0 / (4.0 * np.log(2.0))
+MAX_RANGE = 5.0  # high/low above this is a bad tick, not a session
 
 
 def load_universe(path=UNIVERSE_FILE) -> list[str]:
@@ -42,8 +43,17 @@ def parkinson_vol(high, low):
     return np.sqrt(_PARKINSON * np.log(np.asarray(high) / np.asarray(low)) ** 2)
 
 
-def build_panel(zip_path, tickers, start="2000-01-01", min_obs=1000) -> pd.DataFrame:
-    """Long panel [unit, date, y] with y = daily Parkinson volatility."""
+def build_panel(zip_path, tickers, start="2000-01-01", min_obs=1000,
+                max_range=MAX_RANGE) -> pd.DataFrame:
+    """Long panel [unit, date, y] with y = daily Parkinson volatility.
+
+    Sessions whose high/low clears `max_range` are dropped as bad ticks. An
+    S&P 500 constituent does not trade a five-fold intraday range: the archive
+    holds eight such rows, all at high/low near 10.2, which is a decimal error
+    rather than a market event. The largest genuine range in the panel is 4.19
+    (AIG, 2008-09-16), so the cut is an absolute physical bound with a clean gap
+    on either side, not a quantile fitted to the data.
+    """
     frames, missing = [], []
     with zipfile.ZipFile(zip_path) as zf:
         members = {name.rsplit("/", 1)[-1]: name for name in zf.namelist() if name.endswith(".txt")}
@@ -54,6 +64,7 @@ def build_panel(zip_path, tickers, start="2000-01-01", min_obs=1000) -> pd.DataF
                 continue
             df = parse_stooq_daily(zf.read(member).decode())
             df = df[(df["date"] >= start) & (df["low"] > 0) & (df["high"] > df["low"])]
+            df = df[df["high"] / df["low"] < max_range]
             if len(df) < min_obs:
                 missing.append(t)
                 continue
