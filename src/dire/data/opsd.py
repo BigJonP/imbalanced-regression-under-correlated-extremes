@@ -25,6 +25,7 @@ ZONES = {  # capital coordinates for ERA5
     "IT": (41.89, 12.48), "NL": (52.37, 4.90), "PL": (52.23, 21.01),
     "PT": (38.72, -9.14),
 }
+MAX_MEDIAN_RATIO = 2.0  # a daily peak above this multiple of the zone's own median is a bad reading
 _LOAD_SUFFIX = "_load_actual_entsoe_transparency"
 _ALIASES = {"GB": ["GB_UKM" + _LOAD_SUFFIX, "GB_GBN" + _LOAD_SUFFIX]}
 
@@ -46,8 +47,18 @@ def read_openmeteo_temp(path) -> pd.Series:
     return pd.Series(daily["temperature_2m_max"], index=index, name="temp_max")
 
 
-def build_load_panel(opsd_csv, temp_files: dict[str, str], min_hours=20) -> pd.DataFrame:
-    """Long panel [unit, date, y, temp_max] with y = daily peak load in MW."""
+def build_load_panel(opsd_csv, temp_files: dict[str, str], min_hours=20,
+                     max_median_ratio=MAX_MEDIAN_RATIO) -> pd.DataFrame:
+    """Long panel [unit, date, y, temp_max] with y = daily peak load in MW.
+
+    Days whose peak exceeds `max_median_ratio` times the zone's own median peak
+    are dropped as bad readings. Zones differ in scale by a factor of ten, so
+    the bound has to be relative to the zone; it removes exactly one row across
+    all ten (FR 2020-07-07 at 158 GW, 2.81x the French median, against a French
+    all-time record near 102 GW), and no other row anywhere clears 1.69x. This
+    runs once at panel-construction time, before any splitting, so it is not a
+    fold statistic and the Phase 2 invariance tests are unaffected.
+    """
     columns = resolve_load_columns(opsd_csv)
     df = pd.read_csv(opsd_csv, usecols=["utc_timestamp", *columns.values()], parse_dates=["utc_timestamp"])
     df = df[(df["utc_timestamp"] >= START) & (df["utc_timestamp"] <= f"{END} 23:59")]
@@ -58,6 +69,7 @@ def build_load_panel(opsd_csv, temp_files: dict[str, str], min_hours=20) -> pd.D
         g = df.groupby("date")[col]
         daily = pd.DataFrame({"y": g.max(), "hours": g.count()})
         daily = daily[(daily["hours"] >= min_hours) & (daily["y"] > 0)].drop(columns="hours")
+        daily = daily[daily["y"] <= max_median_ratio * daily["y"].median()]
         temp = read_openmeteo_temp(temp_files[zone])
         daily = daily.join(temp, how="inner").reset_index()
         daily["unit"] = zone

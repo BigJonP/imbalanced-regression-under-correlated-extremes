@@ -7,7 +7,8 @@ import pytest
 from dire.data.panel import DATE, TARGET_DATE, TARGET_LOG, TARGET_RAW, build_supervised, feature_columns
 from dire.data.synthetic import generate_panel
 from dire.eval.fold_stats import FOLD_STATISTICS
-from dire.eval.splits import TemporalSplits, split_frame
+from dire.eval.splits import TemporalSplits, inner_split, split_frame
+from dire.methods.registry import build_method
 
 FOLD_COUNTS = [1, 3, 5]
 
@@ -132,6 +133,44 @@ def test_embargo_between_train_and_validation(supervised, n_folds):
     for train_dates, val_dates in splits.folds:
         gap = splits.timeline.get_loc(val_dates.min()) - splits.timeline.get_loc(train_dates.max())
         assert gap > splits.embargo
+
+
+# --- the early-stopping split ----------------------------------------------
+
+@pytest.mark.parametrize("n_folds", FOLD_COUNTS)
+def test_early_stopping_slice_comes_out_of_training(supervised, n_folds):
+    splits = _splits(supervised, n_folds)
+    for fold in splits.folds:
+        train, val = split_frame(supervised, fold)
+        fit_df, es_df = inner_split(train)
+        fit_dates = pd.DatetimeIndex(fit_df[DATE].unique())
+        es_dates = pd.DatetimeIndex(es_df[DATE].unique())
+        assert len(fit_df) and len(es_df)
+        assert fit_dates.intersection(es_dates).empty
+        assert es_dates.intersection(pd.DatetimeIndex(val[DATE].unique())).empty
+        assert es_dates.intersection(splits.holdout_dates(confirm=True)).empty
+        train_dates = pd.DatetimeIndex(np.sort(train[DATE].unique()))
+        gap = train_dates.get_loc(es_dates.min()) - train_dates.get_loc(fit_dates.max())
+        assert gap > splits.embargo
+
+
+def test_fitting_never_sees_the_scored_fold(panel, supervised):
+    # the check that would have caught early stopping on the graded slice:
+    # corrupt validation targets and every fitted prediction must be unmoved
+    splits = _splits(supervised, 3)
+    fold = splits.folds[-1]
+    corrupted = panel.copy()
+    mask = corrupted[DATE].isin(splits.test_dates(fold))
+    corrupted.loc[mask, "y"] = corrupted.loc[mask, "y"] * 100 + 7
+
+    preds = []
+    for frame in (supervised, build_supervised(corrupted)):
+        train, _ = split_frame(frame, fold)
+        fit_df, es_df = inner_split(train)
+        reference_fit = split_frame(supervised, fold)[0]
+        model = build_method("lds", seed=0, hidden=(8,), max_epochs=5, patience=2)
+        preds.append(model.fit(fit_df, es_df).predict(inner_split(reference_fit)[0]))
+    assert np.array_equal(preds[0], preds[1]), "the fitted model moved with validation rows"
 
 
 def test_fold_statistics_do_depend_on_training_rows(panel, supervised):
